@@ -61,18 +61,6 @@ python process_model.py "模型文件夹路径"
 python process_model.py "./1003_Tokai Teio"
 ```
 
-#### 2. 运行主处理脚本
-
-```bash
-python main.py
-```
-
-#### 3. 分析纹理通道
-
-```bash
-python check_textures.py
-```
-
 ## 🔧 功能特性
 
 ### 自动贴图识别
