@@ -1,4 +1,4 @@
-# UPTG - Ultimate PMX Texture Generator
+# UPTG - Uma PMX Texture Generator
 
 Uma Pmx Texture Generator! 对从 Uma Viewer 中提取的 pmx 模型进行处理，合成几个还算不错的简单粗暴的材质文件~
 
@@ -6,7 +6,7 @@ Uma Pmx Texture Generator! 对从 Uma Viewer 中提取的 pmx 模型进行处理
 
 ## 🎯 项目简介
 
-UPTG (Ultimate PMX Texture Generator) 是一个专门为 PMX 模型设计的纹理处理工具。它能够：
+UPTG (Uma PMX Texture Generator) 是一个专门为 PMX 模型设计的纹理处理工具。它能够：
 
 - 自动识别和加载各种贴图文件
 - 智能合成阴影、高光和透明通道
