@@ -13,6 +13,7 @@ UPTG (Uma PMX Texture Generator) 是一个专门为 PMX 模型设计的纹理处
 - 处理眼睛高光效果
 - 生成高质量的最终纹理
 - 支持覆盖原始文件模式
+- 支持替换并备份原始文件模式
 
 ## 📚 参考来源
 
@@ -76,6 +77,25 @@ python process_model.py "./1003_Tokai Teio" --overwrite
 ```
 
 **注意：** 使用覆盖模式时，原始文件将被直接替换，请确保已备份重要文件。
+
+#### 3. 替换并备份原始文件模式
+
+使用 `--substitute` 参数可以将原始要被覆盖的文件自动重命名为 `*_original.png`（如已存在则自动编号），然后新生成的文件会用原始文件名：
+
+```bash
+python process_model.py "模型文件夹路径" --substitute
+```
+
+例如：
+```bash
+python process_model.py "./1003_Tokai Teio" --substitute
+```
+
+**注意：** `--substitute` 和 `--overwrite` 不能同时使用。
+
+- substitute 模式下，原始文件会被自动重命名为 `*_original.png`，新文件会用原始文件名。
+- overwrite 模式下，直接覆盖原始文件，不做备份。
+- 默认模式下，生成 `_final.png` 文件，不影响原始文件。
 
 ## 🔧 功能特性
 
