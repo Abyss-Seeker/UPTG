@@ -1,6 +1,7 @@
 import os
 import sys
 import glob
+import argparse
 from PIL import Image, ImageChops, ImageEnhance
 
 # 兼容不同Pillow版本
@@ -10,7 +11,20 @@ try:
 except ImportError:
     RESIZE_FILTER = Image.LANCZOS
 
-def process_eye_highlights(base_path, highlight_paths, output_dir):
+def safe_substitute_file(target_path):
+    """如果目标文件存在，则重命名为 *_original.png，避免覆盖丢失。"""
+    if os.path.exists(target_path):
+        base, ext = os.path.splitext(target_path)
+        backup_path = base + '_original' + ext
+        # 如果已经有_original，避免覆盖
+        idx = 1
+        while os.path.exists(backup_path):
+            backup_path = f"{base}_original{idx}{ext}"
+            idx += 1
+        os.rename(target_path, backup_path)
+        print(f"      - 已将原文件重命名为: {os.path.basename(backup_path)}")
+
+def process_eye_highlights(base_path, highlight_paths, output_dir, overwrite=False, substitute=False):
     """恢复用户最初的眼睛高光处理逻辑，仅输出最终结果。"""
     if not base_path or not highlight_paths:
         print("  - 警告: 缺少眼睛贴图，跳过处理。")
@@ -43,12 +57,20 @@ def process_eye_highlights(base_path, highlight_paths, output_dir):
     final_img.paste(left_eye, (0, 0))
     final_img.paste(right_eye, (0, right_eye_y_offset))
     
-    output_path = os.path.join(output_dir, "eye_final.png")
+    # 根据参数决定输出文件名
+    if substitute:
+        output_path = base_path
+        safe_substitute_file(output_path)
+    elif overwrite:
+        output_path = base_path
+    else:
+        output_path = os.path.join(output_dir, "eye_final.png")
+    
     final_img.save(output_path)
     print(f"    - 眼睛最终贴图已保存到: {output_path}")
 
-def process_part(part_name, paths, output_dir, sharpen_contrast=1.8, apply_specular=True, apply_cutoff=True):
-    """根据Bilibili文章流程处理单个部位的贴图."""
+def process_part(part_name, paths, output_dir, sharpen_contrast=1.8, apply_specular=True, apply_cutoff=True, overwrite=False, substitute=False):
+    """根据Bilibili文章流程处理单个部位的贴图。"""
     diff_path = paths.get('diff')
     base_path = paths.get('base')
     shad_c_path = paths.get('shad_c')
@@ -84,7 +106,15 @@ def process_part(part_name, paths, output_dir, sharpen_contrast=1.8, apply_specu
     if apply_cutoff:
         result_img.putalpha(base_img.split()[2])
 
-    output_path = os.path.join(output_dir, f"{part_name}_final.png")
+    # 根据参数决定输出文件名
+    if substitute:
+        output_path = diff_path
+        safe_substitute_file(output_path)
+    elif overwrite:
+        output_path = diff_path
+    else:
+        output_path = os.path.join(output_dir, f"{part_name}_final.png")
+    
     result_img.save(output_path)
     print(f"    - {part_name} 最终贴图已保存到: {output_path}")
 
@@ -121,7 +151,7 @@ def find_texture_files(texture_dir):
     
     return files
 
-def main(model_root_dir):
+def main(model_root_dir, overwrite=False, substitute=False):
     """自动化处理模型贴图的主函数。"""
     texture_dir = os.path.join(model_root_dir, "Texture2D")
     if not os.path.isdir(texture_dir):
@@ -130,6 +160,12 @@ def main(model_root_dir):
 
     print(f"开始处理模型: {os.path.basename(model_root_dir)}")
     print(f"贴图文件夹: {texture_dir}")
+    if substitute:
+        print("模式: 替换原文件并备份(_original)")
+    elif overwrite:
+        print("模式: 覆盖原始文件")
+    else:
+        print("模式: 创建新文件")
 
     # 查找所有需要的贴图
     texture_paths = find_texture_files(texture_dir)
@@ -138,7 +174,9 @@ def main(model_root_dir):
     process_eye_highlights(
         texture_paths['eye']['base'], 
         texture_paths['eye']['highlights'], 
-        texture_dir
+        texture_dir,
+        overwrite=overwrite,
+        substitute=substitute
     )
 
     # 处理其他部位
@@ -150,20 +188,24 @@ def main(model_root_dir):
             texture_paths[part_name],
             texture_dir,
             apply_specular=use_specular,
-            apply_cutoff=use_cutoff
+            apply_cutoff=use_cutoff,
+            overwrite=overwrite,
+            substitute=substitute
         )
     print("所有处理已完成！")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("使用方法: python process_model.py \"<包含Texture2D文件夹的路径>\"")
-        print("例如: python process_model.py \"./1033_Admire Vega\"")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='处理PMX模型贴图')
+    parser.add_argument('model_path', help='包含Texture2D文件夹的模型路径')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--overwrite', action='store_true', help='覆盖原始文件而不是创建新文件')
+    group.add_argument('--substitute', action='store_true', help='将原始文件重命名为*_original，再用新文件替换原名')
     
-    model_path = sys.argv[1]
-    if not os.path.isdir(model_path):
-        print(f"错误: 提供的路径 '{model_path}' 不是一个有效的文件夹。")
+    args = parser.parse_args()
+    
+    if not os.path.isdir(args.model_path):
+        print(f"错误: 提供的路径 '{args.model_path}' 不是一个有效的文件夹。")
         sys.exit(1)
 
-    main(model_path) 
+    main(args.model_path, overwrite=args.overwrite, substitute=args.substitute) 
